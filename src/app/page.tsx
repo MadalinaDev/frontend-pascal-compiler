@@ -67,7 +67,7 @@ export default function Home() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <h1 className="text-2xl font-bold mb-1 text-white">
-          Pascal Code Judge
+          Pascal Code Judge: Problema "Produs maxim"
         </h1>
         <p className="text-gray-400 text-sm mb-6">
           Write your Pascal solution below, then submit to run it against the
