@@ -1,65 +1,242 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+interface TestResult {
+  id: number;
+  name: string;
+  passed: boolean;
+  expectedOutput: string;
+  actualOutput: string;
+  stderr?: string;
+  exitCode: number;
+}
+
+interface RunResponse {
+  compiled: boolean;
+  compileError?: string;
+  compileOutput?: string;
+  results: TestResult[];
+  error?: string;
+}
+
+const DEFAULT_CODE = `program solve;
+var a, b: integer;
+begin
+  readln(a, b);
+  writeln(a + b);
+end.`;
 
 export default function Home() {
+  const [code, setCode] = useState(DEFAULT_CODE);
+  const [loading, setLoading] = useState(false);
+  const [response, setResponse] = useState<RunResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    setResponse(null);
+
+    try {
+      const res = await fetch("/api/run-pascal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+
+      const data: RunResponse = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || `Server error (${res.status})`);
+      } else {
+        setResponse(data);
+      }
+    } catch (err: any) {
+      setError(err.message || "Failed to connect to server");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const passedCount = response?.results.filter((r) => r.passed).length ?? 0;
+  const totalCount = response?.results.length ?? 0;
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <h1 className="text-2xl font-bold mb-1 text-white">
+          Pascal Code Judge
+        </h1>
+        <p className="text-gray-400 text-sm mb-6">
+          Write your Pascal solution below, then submit to run it against the
+          test cases.
+        </p>
+
+        {/* Code Editor */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Pascal Source Code
+          </label>
+          <textarea
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            spellCheck={false}
+            className="w-full h-80 bg-gray-900 border border-gray-700 rounded-lg p-4 font-mono text-sm text-green-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y leading-relaxed"
+            placeholder="program solve; ..."
+          />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+
+        {/* Submit Button */}
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !code.trim()}
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium rounded-lg transition-colors cursor-pointer disabled:cursor-not-allowed"
+        >
+          {loading ? (
+            <span className="flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
+              </svg>
+              Compiling & Running...
+            </span>
+          ) : (
+            "Submit Solution"
+          )}
+        </button>
+
+        {/* Error */}
+        {error && (
+          <div className="mt-6 bg-red-900/50 border border-red-700 rounded-lg p-4">
+            <h3 className="text-red-400 font-semibold mb-1">Error</h3>
+            <pre className="text-red-300 text-sm whitespace-pre-wrap font-mono">
+              {error}
+            </pre>
+          </div>
+        )}
+
+        {/* Compile Error */}
+        {response && !response.compiled && (
+          <div className="mt-6 bg-red-900/50 border border-red-700 rounded-lg p-4">
+            <h3 className="text-red-400 font-semibold mb-1">
+              Compilation Failed
+            </h3>
+            <pre className="text-red-300 text-sm whitespace-pre-wrap font-mono max-h-60 overflow-auto">
+              {response.compileError}
+            </pre>
+          </div>
+        )}
+
+        {/* Results */}
+        {response && response.compiled && (
+          <div className="mt-6">
+            {/* Summary */}
+            <div
+              className={`rounded-lg p-4 mb-4 border ${
+                passedCount === totalCount
+                  ? "bg-green-900/30 border-green-700"
+                  : "bg-yellow-900/30 border-yellow-700"
+              }`}
+            >
+              <span className="text-lg font-bold">
+                {passedCount === totalCount ? (
+                  <span className="text-green-400">
+                    All Tests Passed! ({passedCount}/{totalCount})
+                  </span>
+                ) : (
+                  <span className="text-yellow-400">
+                    {passedCount}/{totalCount} Tests Passed
+                  </span>
+                )}
+              </span>
+            </div>
+
+            {/* Individual Results */}
+            <div className="space-y-3">
+              {response.results.map((result) => (
+                <div
+                  key={result.id}
+                  className={`rounded-lg border p-4 ${
+                    result.passed
+                      ? "bg-green-900/20 border-green-800"
+                      : "bg-red-900/20 border-red-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold ${
+                        result.passed
+                          ? "bg-green-600 text-white"
+                          : "bg-red-600 text-white"
+                      }`}
+                    >
+                      {result.passed ? "✓" : "✗"}
+                    </span>
+                    <span className="font-medium">{result.name}</span>
+                    <span
+                      className={`ml-auto text-xs font-semibold px-2 py-0.5 rounded ${
+                        result.passed
+                          ? "bg-green-800 text-green-200"
+                          : "bg-red-800 text-red-200"
+                      }`}
+                    >
+                      {result.passed ? "PASSED" : "FAILED"}
+                    </span>
+                  </div>
+
+                  {!result.passed && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 text-sm">
+                      <div>
+                        <span className="text-gray-400 text-xs uppercase tracking-wide">
+                          Expected Output
+                        </span>
+                        <pre className="mt-1 bg-gray-900 rounded p-2 text-green-300 font-mono whitespace-pre-wrap">
+                          {result.expectedOutput || "(empty)"}
+                        </pre>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-xs uppercase tracking-wide">
+                          Actual Output
+                        </span>
+                        <pre className="mt-1 bg-gray-900 rounded p-2 text-red-300 font-mono whitespace-pre-wrap">
+                          {result.actualOutput || "(empty)"}
+                        </pre>
+                      </div>
+                      {result.stderr && (
+                        <div className="md:col-span-2">
+                          <span className="text-gray-400 text-xs uppercase tracking-wide">
+                            Stderr
+                          </span>
+                          <pre className="mt-1 bg-gray-900 rounded p-2 text-yellow-300 font-mono whitespace-pre-wrap text-xs">
+                            {result.stderr}
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
