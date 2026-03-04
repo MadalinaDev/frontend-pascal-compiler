@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { testCases } from "@/lib/testcases";
+import { getProblemBySlug } from "@/lib/testcases";
 
 /**
  * Judge0 CE API — industry-standard code execution engine.
@@ -37,12 +37,10 @@ function getHeaders(): Record<string, string> {
     "Content-Type": "application/json",
   };
 
-  // If using RapidAPI (default), add RapidAPI headers
   if (JUDGE0_API_URL.includes("rapidapi.com")) {
     headers["X-RapidAPI-Key"] = JUDGE0_API_KEY;
     headers["X-RapidAPI-Host"] = RAPIDAPI_HOST;
   } else if (JUDGE0_API_KEY) {
-    // Self-hosted Judge0 with auth token
     headers["X-Auth-Token"] = JUDGE0_API_KEY;
   }
 
@@ -53,7 +51,6 @@ async function executeWithJudge0(
   code: string,
   stdin: string,
 ): Promise<Judge0Submission> {
-  // Use ?wait=true so the API blocks until execution completes
   const res = await fetch(
     `${JUDGE0_API_URL}/submissions?base64_encoded=false&wait=true`,
     {
@@ -89,6 +86,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const code: string = body.code;
+    const problemSlug: string = body.problemSlug;
 
     if (!code || typeof code !== "string") {
       return NextResponse.json(
@@ -97,8 +95,23 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!problemSlug || typeof problemSlug !== "string") {
+      return NextResponse.json(
+        { error: "No problem specified" },
+        { status: 400 },
+      );
+    }
+
+    const problem = getProblemBySlug(problemSlug);
+    if (!problem) {
+      return NextResponse.json(
+        { error: `Problem "${problemSlug}" not found` },
+        { status: 404 },
+      );
+    }
+
     // Run all test cases in parallel
-    const resultPromises = testCases.map(async (tc) => {
+    const resultPromises = problem.testCases.map(async (tc) => {
       try {
         const result = await executeWithJudge0(code, tc.input);
 
@@ -113,11 +126,11 @@ export async function POST(req: NextRequest) {
             stderr: result.compile_output || "Compilation error",
             exitCode: 1,
             compilationError: true,
+            time: result.time,
+            memory: result.memory,
           };
         }
 
-        // Status 3 = Accepted (ran successfully)
-        // Any other status = runtime error, TLE, etc.
         const actualOutput = (result.stdout || "")
           .replace(/\r\n/g, "\n")
           .trim();
@@ -138,6 +151,8 @@ export async function POST(req: NextRequest) {
               ? `Runtime: ${result.status.description}`
               : undefined),
           exitCode: result.status.id === 3 ? 0 : result.status.id,
+          time: result.time,
+          memory: result.memory,
         };
       } catch (err: any) {
         return {
@@ -148,6 +163,8 @@ export async function POST(req: NextRequest) {
           actualOutput: "",
           stderr: err.message,
           exitCode: -1,
+          time: null,
+          memory: null,
         };
       }
     });
@@ -155,7 +172,6 @@ export async function POST(req: NextRequest) {
     const results = await Promise.all(resultPromises);
     results.sort((a, b) => a.id - b.id);
 
-    // Check if every test had a compilation error
     const allCompileErrors = results.every(
       (r) => "compilationError" in r && r.compilationError,
     );
