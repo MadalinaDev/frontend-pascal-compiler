@@ -108,7 +108,7 @@ export default function AuthGate({ children }: { children: React.ReactNode }) {
             </svg>
           </div>
 
-          <h1 className="text-xl font-bold text-white mb-2">Pascal Judge</h1>
+          <h1 className="text-xl font-bold text-white mb-2">C++ Judge</h1>
           <p className="text-gray-400 text-sm mb-6">
             Introdu codul PIN de 4 cifre pentru a accesa platforma.
           </p>

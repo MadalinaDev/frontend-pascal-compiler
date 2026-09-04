@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
 import type { Problem } from "@/lib/testcases";
+import QuotaBadge, { type Quota } from "@/components/QuotaBadge";
 import { slugify } from "@/lib/testcases";
 
 interface TestResult {
@@ -23,6 +24,10 @@ interface RunResponse {
   compileError?: string;
   results: TestResult[];
   error?: string;
+  /** Daily Judge0 quota as of this submission */
+  quota?: Quota | null;
+  /** How many upstream requests this submission actually cost */
+  requestsUsed?: number;
 }
 
 function fireConfetti() {
@@ -105,7 +110,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
     setResponse(null);
 
     try {
-      const res = await fetch("/api/run-pascal", {
+      const res = await fetch("/api/run-cpp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, problemSlug: slugify(problem.title) }),
@@ -143,15 +148,17 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
               href="/"
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
             >
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-xs">
-                PJ
+              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-[10px]">
+                C++
               </div>
-              <span className="font-semibold text-white">Pascal Judge</span>
+              <span className="font-semibold text-white">C++ Judge</span>
             </Link>
             <span className="text-gray-600">|</span>
             <span className="text-gray-300 font-medium">{problem.title}</span>
           </div>
-          <div className="flex items-center gap-4"></div>
+          <div className="flex items-center gap-4">
+            <QuotaBadge quota={response?.quota} />
+          </div>
         </div>
       </header>
 
@@ -325,6 +332,18 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                           }}
                         />
                       </div>
+
+                      {response.requestsUsed !== undefined && (
+                        <div className="mt-3 text-xs text-gray-500">
+                          {totalCount} teste trimise într-un singur batch —
+                          a costat {response.requestsUsed}{" "}
+                          {response.requestsUsed === 1 ? "cerere" : "cereri"} Judge0
+                          {response.quota
+                            ? `, ${response.quota.remaining} rămase azi`
+                            : ""}
+                          .
+                        </div>
+                      )}
                     </div>
 
                     {/* Individual test results */}
@@ -351,7 +370,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                     <div className="w-3 h-3 rounded-full bg-green-500/60" />
                   </div>
                   <span className="text-sm text-gray-400 ml-2 font-mono">
-                    solution.pas
+                    solution.cpp
                   </span>
                 </div>
                 <button
@@ -368,14 +387,14 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
                 onChange={(e) => setCode(e.target.value)}
                 spellCheck={false}
                 className="w-full h-[calc(100vh-340px)] min-h-[400px] bg-gray-950 p-4 font-mono text-sm text-green-300 focus:outline-none resize-none leading-relaxed"
-                placeholder={`program solve;
-var
-  a, b, sum: integer;
-begin
-  readln(a, b);
-  sum := a + b;
-  writeln(sum);
-end.`}
+                placeholder={`#include <iostream>
+
+int main() {
+    int a, b;
+    std::cin >> a >> b;
+    std::cout << a + b << "\\n";
+    return 0;
+}`}
               />
             </div>
 

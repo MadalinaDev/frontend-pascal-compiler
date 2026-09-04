@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { problems } from "@/lib/testcases";
+import QuotaBadge from "@/components/QuotaBadge";
 import { slugify } from "@/lib/testcases";
 
 export default function Home() {
@@ -11,13 +12,16 @@ export default function Home() {
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-sm">
-              PJ
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-xs">
+              C++
             </div>
-            <h1 className="text-xl font-bold text-white">Pascal Judge</h1>
+            <h1 className="text-xl font-bold text-white">C++ Judge</h1>
           </div>
-          <div className="text-sm text-gray-400">
-            {problems.length} problem{problems.length !== 1 ? "e" : "ă"} disponibil{problems.length !== 1 ? "e" : "ă"}
+          <div className="flex items-center gap-4">
+            <QuotaBadge />
+            <div className="text-sm text-gray-400">
+              {problems.length} problem{problems.length !== 1 ? "e" : "ă"} disponibil{problems.length !== 1 ? "e" : "ă"}
+            </div>
           </div>
         </div>
       </header>
@@ -27,7 +31,7 @@ export default function Home() {
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-white mb-2">Probleme</h2>
           <p className="text-gray-400">
-            Alege o problemă, scrie soluția în Pascal, și testează-o automat.
+            Alege o problemă, scrie soluția în C++, și testează-o automat.
           </p>
         </div>
 

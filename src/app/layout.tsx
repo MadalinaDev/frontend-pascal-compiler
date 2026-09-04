@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Pascal Judge — Platformă de Evaluare",
+  title: "C++ Judge — Platformă de Evaluare",
   description:
-    "Rezolvă probleme de informatică în Pascal și testează-le automat",
+    "Rezolvă probleme de informatică în C++ și testează-le automat",
 };
 
 export default function RootLayout({

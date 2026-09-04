@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: Props) {
   const { slug } = await params;
   const problem = getProblemBySlug(slug);
   return {
-    title: problem ? `${problem.title} — Pascal Judge` : "Problem Not Found",
+    title: problem ? `${problem.title} — C++ Judge` : "Problem Not Found",
   };
 }
 
