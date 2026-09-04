@@ -97,19 +97,59 @@ every submission after that. `GET /api/quota` replays the last reading without
 spending a credit. Self-hosted Judge0 sends no such headers and is not
 metered, so the badge stays at *Credite: necunoscut* there.
 
-## Editing Test Cases
+## Progress Tracking
 
-Open `src/lib/testcases.ts` and modify the `testCases` array. Each test case has:
+Every submission is recorded per problem, and the home page marks solved rows
+green with a check, shows a best-score badge on problems that were attempted
+but not finished, and counts progress per chapter and overall.
 
-```ts
+Progress is kept in **localStorage** under `cppjudge:progress:v1`:
+
+```json
 {
-  id: 1,
-  name: "Test 1 - description",
-  input: "input string fed to stdin
-",
-  expectedOutput: "expected stdout output",
-  timeoutMs: 5000, // optional, default 5s
+  "bancherul": {
+    "solved": true, "bestPassed": 20, "total": 20,
+    "attempts": 3, "lastAttemptAt": 1788559239520, "solvedAt": 1788559239520
+  }
 }
 ```
 
-Test cases are language-agnostic — only stdin and expected stdout matter.
+localStorage rather than cookies, because the server never reads this data. A
+cookie would be sent on every request, cap out around 4KB, and force the
+statically prerendered home page to render per-request instead.
+
+Consequences worth knowing:
+
+- Progress is **per browser, per device.** It does not follow a student to
+  another machine, and clearing site data erases it. There are no accounts, so
+  there is nowhere else to put it without a database.
+- `solved` **latches.** Once every test has passed, a later worse submission
+  does not un-solve the problem, and the best score never goes down.
+- The **Resetează** control in the header clears it, for handing the laptop to
+  the next student.
+- If localStorage is unavailable (some private-browsing modes), the app still
+  judges normally — it just cannot remember anything.
+
+## Adding Problems & Chapters
+
+Problems live as JSON files under `content/`, grouped into chapters — no code
+changes needed to add one:
+
+```
+content/
+  01-olimpiada-2023/
+    chapter.json              { "title": "Olimpiada 2023", "description": "..." }
+    01-produs-maxim.json      { "title", "statement", "testCases": [...] }
+    02-numar-maxim.json
+  02-probleme-de-antrenament/
+    chapter.json
+    01-masini.json
+```
+
+The `NN-` prefix orders things and is stripped from the URL, so
+`01-produs-maxim.json` is served at `/problem/produs-maxim`. Add a chapter by
+making a folder with a `chapter.json`; add a problem by dropping a `.json` file
+into one.
+
+See **[content/README.md](content/README.md)** for the full field reference,
+the gotchas, and a copy-paste template.

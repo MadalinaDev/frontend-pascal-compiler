@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getProblemBySlug } from "@/lib/testcases";
+import { getProblemBySlug } from "@/lib/content";
 import { readQuotaFromHeaders, rememberQuota, type Quota } from "@/lib/quota";
 
 /**

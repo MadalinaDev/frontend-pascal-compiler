@@ -1,12 +1,17 @@
-import { problems, slugify, getProblemBySlug } from "@/lib/testcases";
+import {
+  getAllProblems,
+  getProblemBySlug,
+  getChapterOfProblem,
+} from "@/lib/content";
 import { notFound } from "next/navigation";
 import ProblemClient from "@/app/problem/[slug]/ProblemClient";
+
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateStaticParams() {
-  return problems.map((p) => ({ slug: slugify(p.title) }));
+  return getAllProblems().map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Props) {
@@ -25,6 +30,13 @@ export default async function ProblemPage({ params }: Props) {
     notFound();
   }
 
+  const chapter = getChapterOfProblem(slug);
+
   // Serialize the problem data to pass to client component
-  return <ProblemClient problem={problem} />;
+  return (
+    <ProblemClient
+      problem={problem}
+      chapterTitle={chapter?.title ?? null}
+    />
+  );
 }

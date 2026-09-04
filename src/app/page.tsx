@@ -1,16 +1,17 @@
-"use client";
-
-import Link from "next/link";
-import { problems } from "@/lib/testcases";
+import { getChapters } from "@/lib/content";
 import QuotaBadge from "@/components/QuotaBadge";
-import { slugify } from "@/lib/testcases";
+import ChapterSection from "@/components/ChapterSection";
+import ProgressSummary from "@/components/ProgressSummary";
 
 export default function Home() {
+  const chapters = getChapters();
+  const allSlugs = chapters.flatMap((c) => c.problems.map((p) => p.slug));
+
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
       {/* Header */}
       <header className="border-b border-gray-800 bg-gray-900/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-xs">
               C++
@@ -18,10 +19,8 @@ export default function Home() {
             <h1 className="text-xl font-bold text-white">C++ Judge</h1>
           </div>
           <div className="flex items-center gap-4">
+            <ProgressSummary slugs={allSlugs} />
             <QuotaBadge />
-            <div className="text-sm text-gray-400">
-              {problems.length} problem{problems.length !== 1 ? "e" : "ă"} disponibil{problems.length !== 1 ? "e" : "ă"}
-            </div>
           </div>
         </div>
       </header>
@@ -35,50 +34,28 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Problem Table */}
-        <div className="rounded-xl border border-gray-800 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-900/80 text-left text-sm text-gray-400 uppercase tracking-wider">
-                <th className="px-6 py-3 w-12">#</th>
-                <th className="px-6 py-3">Problemă</th>
-                <th className="px-6 py-3 w-20 text-center">Teste</th>
-                <th className="px-6 py-3 w-28"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-800">
-              {problems.map((problem, idx) => (
-                <tr
-                  key={slugify(problem.title)}
-                  className="hover:bg-gray-800/50 transition-colors"
-                >
-                  <td className="px-6 py-4 text-gray-500 font-mono text-sm">
-                    {idx + 1}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Link
-                      href={`/problem/${slugify(problem.title)}`}
-                      className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-                    >
-                      {problem.title}
-                    </Link>
-                  </td>
-                  <td className="px-6 py-4 text-center text-gray-400 text-sm">
-                    {problem.testCases.length}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <Link
-                      href={`/problem/${slugify(problem.title)}`}
-                      className="inline-flex items-center gap-1 text-sm px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors whitespace-nowrap"
-                    >
-                      <span>Rezolvă</span>
-                      <span>→</span>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {chapters.length === 0 && (
+          <div className="rounded-xl border border-gray-800 p-8 text-center text-gray-500">
+            Niciun capitol încă. Adaugă un folder în{" "}
+            <code className="text-gray-300">content/</code> cu un{" "}
+            <code className="text-gray-300">chapter.json</code> în el.
+          </div>
+        )}
+
+        <div className="space-y-10">
+          {chapters.map((chapter, chapterIdx) => (
+            <ChapterSection
+              key={chapter.slug}
+              index={chapterIdx + 1}
+              title={chapter.title}
+              description={chapter.description}
+              problems={chapter.problems.map((p) => ({
+                slug: p.slug,
+                title: p.title,
+                testCount: p.testCases.length,
+              }))}
+            />
+          ))}
         </div>
       </main>
     </div>

@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import confetti from "canvas-confetti";
-import type { Problem } from "@/lib/testcases";
+import type { Problem } from "@/lib/problems";
 import QuotaBadge, { type Quota } from "@/components/QuotaBadge";
-import { slugify } from "@/lib/testcases";
+import { recordAttempt } from "@/lib/progress";
 
 interface TestResult {
   id: number;
@@ -65,7 +65,13 @@ function fireConfetti() {
   });
 }
 
-export default function ProblemClient({ problem }: { problem: Problem }) {
+export default function ProblemClient({
+  problem,
+  chapterTitle,
+}: {
+  problem: Problem;
+  chapterTitle?: string | null;
+}) {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<RunResponse | null>(null);
@@ -113,7 +119,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
       const res = await fetch("/api/run-cpp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, problemSlug: slugify(problem.title) }),
+        body: JSON.stringify({ code, problemSlug: problem.slug }),
       });
 
       const data: RunResponse = await res.json();
@@ -122,6 +128,16 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
         setError(data.error || `Server error (${res.status})`);
       } else {
         setResponse(data);
+
+        // Record the attempt. A compile error counts as an attempt with zero
+        // tests passed; the problem's own test count is authoritative for the
+        // total, since a failed run returns no results.
+        recordAttempt(
+          problem.slug,
+          data.results?.filter((r) => r.passed).length ?? 0,
+          problem.testCases.length,
+        );
+
         setActiveTab("submissions");
         // Scroll to results
         setTimeout(() => {
@@ -136,7 +152,7 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
     } finally {
       setLoading(false);
     }
-  }, [code, problem.title]);
+  }, [code, problem.slug, problem.testCases.length]);
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
@@ -153,7 +169,15 @@ export default function ProblemClient({ problem }: { problem: Problem }) {
               </div>
               <span className="font-semibold text-white">C++ Judge</span>
             </Link>
-            <span className="text-gray-600">|</span>
+            {chapterTitle && (
+              <>
+                <span className="text-gray-600">/</span>
+                <span className="text-gray-400 text-sm hidden sm:inline">
+                  {chapterTitle}
+                </span>
+              </>
+            )}
+            <span className="text-gray-600">/</span>
             <span className="text-gray-300 font-medium">{problem.title}</span>
           </div>
           <div className="flex items-center gap-4">
